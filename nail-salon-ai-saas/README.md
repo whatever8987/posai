@@ -132,8 +132,8 @@ See [QUICK_START.md](./QUICK_START.md) for detailed instructions.
        │
        v
 ┌─────────────┐      ┌──────────────┐      ┌─────────────┐
-│  Frontend   │─────>│   Backend    │─────>│  PostgreSQL │
-│   (Vue 3)   │      │  (FastAPI)   │      │ (Multi-tenant)
+│    │─────>│   Backend    │─────>│  PostgreSQL │
+│   Nextjs   │      │  (FastAPI)   │      │ (Multi-tenant)
 └─────────────┘      └──────┬───────┘      └─────────────┘
                             │
                 ┌───────────┼───────────┐
