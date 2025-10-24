@@ -75,7 +75,7 @@ async def register(
     tenant_db = TenantDatabase(str(tenant.tenant_id))
     await tenant_db.create_schema()
     
-    # Create owner user
+    # Create owner user - using argon2 so no password length issues
     user = User(
         tenant_id=tenant.tenant_id,
         email=request.owner_email,
@@ -113,11 +113,29 @@ async def login(
     """
     Login with email and password
     """
-    # Find user
+    # First, find which tenant this user belongs to
     result = await db.execute(
-        select(User).where(User.email == request.email)
+        select(Tenant).where(Tenant.owner_email == request.email)
     )
-    user = result.scalar_one_or_none()
+    tenant = result.scalar_one_or_none()
+    
+    if not tenant:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+        )
+    
+    # Switch to tenant schema to find the user
+    from ...core.tenancy import set_tenant_context
+    async with set_tenant_context(str(tenant.tenant_id)):
+        # Now search for user in the tenant schema
+        tenant_db = await get_db()
+        async for db_session in tenant_db:
+            result = await db_session.execute(
+                select(User).where(User.email == request.email)
+            )
+            user = result.scalar_one_or_none()
+            break
     
     if not user or not verify_password(request.password, user.hashed_password):
         raise HTTPException(
@@ -156,4 +174,3 @@ async def get_current_user_info(
     Get current user information
     """
     return current_user.dict()
-

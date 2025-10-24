@@ -1,4 +1,5 @@
-version: '3.8'
+# Docker Compose for Backend Services Only
+# Use this with the dev frontend running separately
 
 services:
   # PostgreSQL Database
@@ -12,8 +13,7 @@ services:
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # Note: Port not exposed to host - backend connects via internal Docker network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U nail_salon_user -d nail_salon_db"]
       interval: 10s
@@ -54,13 +54,6 @@ services:
     networks:
       - nail-salon-network
     restart: unless-stopped
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
 
   # Backend API
   backend:
@@ -76,10 +69,18 @@ services:
       ollama:
         condition: service_started
     environment:
-      # Database
+      # Database (individual vars for pydantic-settings)
+      POSTGRES_SERVER: postgres
+      POSTGRES_USER: nail_salon_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme123}
+      POSTGRES_DB: nail_salon_db
+      POSTGRES_PORT: 5432
       DATABASE_URL: postgresql+asyncpg://nail_salon_user:${POSTGRES_PASSWORD:-changeme123}@postgres:5432/nail_salon_db
       
       # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
       REDIS_URL: redis://redis:6379/0
       
       # Security
@@ -88,12 +89,12 @@ services:
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
       
       # Ollama
-      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_HOST: http://ollama:11434
       OLLAMA_MODEL: llama2
       
       # App Settings
       DEBUG: ${DEBUG:-false}
-      BACKEND_CORS_ORIGINS: http://localhost:5173,http://localhost:80,http://frontend:80
+      BACKEND_CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173,http://localhost:3001,http://127.0.0.1:3001,http://localhost:3000,http://localhost:80,http://frontend:80
       
       # Sentry (optional)
       SENTRY_DSN: ${SENTRY_DSN:-}
@@ -124,10 +125,18 @@ services:
       - backend
       - redis
     environment:
+      POSTGRES_SERVER: postgres
+      POSTGRES_USER: nail_salon_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme123}
+      POSTGRES_DB: nail_salon_db
+      POSTGRES_PORT: 5432
       DATABASE_URL: postgresql+asyncpg://nail_salon_user:${POSTGRES_PASSWORD:-changeme123}@postgres:5432/nail_salon_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
       REDIS_URL: redis://redis:6379/0
       SECRET_KEY: ${SECRET_KEY:-your-super-secret-key-change-this-in-production}
-      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_HOST: http://ollama:11434
     volumes:
       - tenant_data:/app/tenant_data
       - backend_logs:/app/logs
@@ -146,31 +155,19 @@ services:
       - backend
       - redis
     environment:
+      POSTGRES_SERVER: postgres
+      POSTGRES_USER: nail_salon_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme123}
+      POSTGRES_DB: nail_salon_db
+      POSTGRES_PORT: 5432
       DATABASE_URL: postgresql+asyncpg://nail_salon_user:${POSTGRES_PASSWORD:-changeme123}@postgres:5432/nail_salon_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
       REDIS_URL: redis://redis:6379/0
       SECRET_KEY: ${SECRET_KEY:-your-super-secret-key-change-this-in-production}
     volumes:
       - backend_logs:/app/logs
-    networks:
-      - nail-salon-network
-    restart: unless-stopped
-
-  # Frontend
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: nail-salon-frontend
-    depends_on:
-      - backend
-    ports:
-      - "80:80"
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 5s
     networks:
       - nail-salon-network
     restart: unless-stopped

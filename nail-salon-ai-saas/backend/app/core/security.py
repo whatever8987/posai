@@ -10,8 +10,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from .config import settings
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Password hashing - Use django_pbkdf2_sha256 as reliable fallback
+pwd_context = CryptContext(schemes=["django_pbkdf2_sha256", "bcrypt"], deprecated="auto")
 
 # Bearer token scheme
 security = HTTPBearer()
@@ -163,4 +163,3 @@ def hash_api_key(api_key: str) -> str:
 def verify_api_key(api_key: str, hashed_key: str) -> bool:
     """Verify an API key against its hash"""
     return verify_password(api_key, hashed_key)
-

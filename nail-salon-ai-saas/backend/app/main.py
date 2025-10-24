@@ -12,7 +12,7 @@ import time
 from .core.config import settings
 from .core.database import init_db
 from .core.tenancy import TenantMiddleware
-from .api.v1 import auth, query, integrations, training, insights, predictions, recommendations, dev_auth, user
+from .api.v1 import auth, query, integrations, training, insights, predictions, recommendations, user
 
 # Sentry integration
 import sentry_sdk
@@ -71,10 +71,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS middleware
+# CORS middleware - properly handle origins with credentials
+cors_origins = settings.BACKEND_CORS_ORIGINS.split(",") if settings.BACKEND_CORS_ORIGINS else []
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure properly in production
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -105,8 +106,6 @@ async def prometheus_middleware(request, call_next):
     return response
 
 # Include routers
-# Development auth (simple mock for frontend development)
-app.include_router(dev_auth.router, prefix="/api")
 # Production routers
 app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(user.router, prefix=settings.API_V1_STR)
