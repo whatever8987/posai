@@ -1,0 +1,83 @@
+[
+    {
+        "question": "What are the top 10 customers by total spending?",
+        "answer": "SELECT c.customer_id, c.first_name, c.last_name, SUM(b.total_amount) as total_spent FROM customers c JOIN bookings b ON c.customer_id = b.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY total_spent DESC LIMIT 10;"
+    },
+    {
+        "question": "What is our total revenue for this month?",
+        "answer": "SELECT SUM(total_amount) as monthly_revenue FROM bookings WHERE MONTH(booking_date) = MONTH(CURRENT_DATE) AND YEAR(booking_date) = YEAR(CURRENT_DATE);"
+    },
+    {
+        "question": "Which services are most popular?",
+        "answer": "SELECT s.service_name, COUNT(bs.service_id) as service_count FROM services s JOIN booking_services bs ON s.service_id = bs.service_id GROUP BY s.service_id, s.service_name ORDER BY service_count DESC;"
+    },
+    {
+        "question": "What is the average ticket value per customer visit?",
+        "answer": "SELECT AVG(total_amount) as avg_ticket_value FROM bookings WHERE status = 'completed';"
+    },
+    {
+        "question": "Which technicians have the most appointments this week?",
+        "answer": "SELECT t.technician_id, t.first_name, t.last_name, COUNT(b.booking_id) as appointment_count FROM technicians t JOIN bookings b ON t.technician_id = b.technician_id WHERE WEEK(b.booking_date) = WEEK(CURRENT_DATE) AND YEAR(b.booking_date) = YEAR(CURRENT_DATE) GROUP BY t.technician_id, t.first_name, t.last_name ORDER BY appointment_count DESC;"
+    },
+    {
+        "question": "What is our busiest day of the week?",
+        "answer": "SELECT DAYNAME(booking_date) as day_of_week, COUNT(*) as booking_count FROM bookings WHERE booking_date >= DATE_SUB(CURRENT_DATE, INTERVAL 3 MONTH) GROUP BY DAYNAME(booking_date), DAYOFWEEK(booking_date) ORDER BY DAYOFWEEK(booking_date);"
+    },
+    {
+        "question": "How many new customers did we get this month?",
+        "answer": "SELECT COUNT(*) as new_customers FROM customers WHERE MONTH(created_at) = MONTH(CURRENT_DATE) AND YEAR(created_at) = YEAR(CURRENT_DATE);"
+    },
+    {
+        "question": "What is the total revenue by service category?",
+        "answer": "SELECT s.category, SUM(bs.price) as total_revenue FROM services s JOIN booking_services bs ON s.service_id = bs.service_id JOIN bookings b ON bs.booking_id = b.booking_id WHERE b.status = 'completed' GROUP BY s.category ORDER BY total_revenue DESC;"
+    },
+    {
+        "question": "Which customers haven't visited in the last 60 days?",
+        "answer": "SELECT c.customer_id, c.first_name, c.last_name, c.phone, MAX(b.booking_date) as last_visit FROM customers c LEFT JOIN bookings b ON c.customer_id = b.customer_id GROUP BY c.customer_id, c.first_name, c.last_name, c.phone HAVING MAX(b.booking_date) < DATE_SUB(CURRENT_DATE, INTERVAL 60 DAY) OR MAX(b.booking_date) IS NULL ORDER BY last_visit;"
+    },
+    {
+        "question": "What is each technician's total revenue for this month?",
+        "answer": "SELECT t.technician_id, t.first_name, t.last_name, SUM(b.total_amount) as monthly_revenue FROM technicians t JOIN bookings b ON t.technician_id = b.technician_id WHERE MONTH(b.booking_date) = MONTH(CURRENT_DATE) AND YEAR(b.booking_date) = YEAR(CURRENT_DATE) AND b.status = 'completed' GROUP BY t.technician_id, t.first_name, t.last_name ORDER BY monthly_revenue DESC;"
+    },
+    {
+        "question": "How many appointments do we have scheduled for tomorrow?",
+        "answer": "SELECT COUNT(*) as tomorrow_appointments FROM bookings WHERE DATE(booking_date) = DATE_ADD(CURRENT_DATE, INTERVAL 1 DAY) AND status = 'scheduled';"
+    },
+    {
+        "question": "What is our customer retention rate?",
+        "answer": "SELECT (COUNT(DISTINCT CASE WHEN booking_count > 1 THEN customer_id END) * 100.0 / COUNT(DISTINCT customer_id)) as retention_rate FROM (SELECT customer_id, COUNT(*) as booking_count FROM bookings GROUP BY customer_id) as customer_bookings;"
+    },
+    {
+        "question": "What are the top 5 best-selling products?",
+        "answer": "SELECT p.product_name, SUM(ps.quantity) as total_sold, SUM(ps.total_price) as total_revenue FROM products p JOIN product_sales ps ON p.product_id = ps.product_id GROUP BY p.product_id, p.product_name ORDER BY total_sold DESC LIMIT 5;"
+    },
+    {
+        "question": "What is the average wait time between booking and appointment?",
+        "answer": "SELECT AVG(DATEDIFF(booking_date, created_at)) as avg_wait_days FROM bookings WHERE status IN ('scheduled', 'completed');"
+    },
+    {
+        "question": "Which services generate the most revenue?",
+        "answer": "SELECT s.service_name, SUM(bs.price) as total_revenue, COUNT(bs.service_id) as times_booked FROM services s JOIN booking_services bs ON s.service_id = bs.service_id GROUP BY s.service_id, s.service_name ORDER BY total_revenue DESC LIMIT 10;"
+    },
+    {
+        "question": "What is our cancellation rate this month?",
+        "answer": "SELECT (COUNT(CASE WHEN status = 'cancelled' THEN 1 END) * 100.0 / COUNT(*)) as cancellation_rate FROM bookings WHERE MONTH(booking_date) = MONTH(CURRENT_DATE) AND YEAR(booking_date) = YEAR(CURRENT_DATE);"
+    },
+    {
+        "question": "List customers who spent more than $500 in the last 3 months",
+        "answer": "SELECT c.customer_id, c.first_name, c.last_name, c.phone, SUM(b.total_amount) as total_spent FROM customers c JOIN bookings b ON c.customer_id = b.customer_id WHERE b.booking_date >= DATE_SUB(CURRENT_DATE, INTERVAL 3 MONTH) AND b.status = 'completed' GROUP BY c.customer_id, c.first_name, c.last_name, c.phone HAVING total_spent > 500 ORDER BY total_spent DESC;"
+    },
+    {
+        "question": "What are today's appointments by technician?",
+        "answer": "SELECT t.first_name, t.last_name, b.booking_time, c.first_name as customer_first_name, c.last_name as customer_last_name, b.total_amount FROM bookings b JOIN technicians t ON b.technician_id = t.technician_id JOIN customers c ON b.customer_id = c.customer_id WHERE DATE(b.booking_date) = CURRENT_DATE ORDER BY t.first_name, b.booking_time;"
+    },
+    {
+        "question": "What is the average number of services per booking?",
+        "answer": "SELECT AVG(service_count) as avg_services_per_booking FROM (SELECT booking_id, COUNT(*) as service_count FROM booking_services GROUP BY booking_id) as booking_service_counts;"
+    },
+    {
+        "question": "Show me low stock products",
+        "answer": "SELECT product_name, current_stock, min_stock_level FROM products WHERE current_stock <= min_stock_level ORDER BY current_stock;"
+    }
+]
+
